@@ -51,8 +51,7 @@ pipeline {
       when { expression { return params.RUN_SONAR } }
       steps {
         script {
-          // Only run sonar-scanner if the binary exists on the agent. If it's
-          // missing, skip Sonar analysis but don't fail the pipeline.
+
           def scannerPresent = (sh(script: "command -v sonar-scanner >/dev/null 2>&1", returnStatus: true) == 0)
           if (scannerPresent) {
             withSonarQubeEnv('sonar-local') {
@@ -113,10 +112,8 @@ pipeline {
     stage('Deploy to STAGING (remote)') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'acr-creds',
-                  usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
-          // Use the SSH private key credential directly to create a temp key
-          // file and pass it to ssh. This avoids relying on the SSH Agent plugin
-          // (sshagent) which may not be installed on this Jenkins instance.
+                  usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) 
+                  {
           withCredentials([sshUserPrivateKey(credentialsId: 'deploy-ssh', keyFileVariable: 'SSH_KEYFILE')]) {
             sh """
               ssh -i \$SSH_KEYFILE -o StrictHostKeyChecking=no azureuser@${params.DEPLOY_IP} "
@@ -133,8 +130,6 @@ pipeline {
 
     stage('Health check (staging)') {
       steps {
-        // Run via bash and ensure the script is executable to avoid
-        // "Permission denied" when the exec bit wasn't preserved in the repo.
         sh "chmod +x scripts/health_check.sh || true; bash scripts/health_check.sh http://${params.DEPLOY_IP}:${STAGING_PORT}/health"
       }
     }

@@ -133,7 +133,9 @@ pipeline {
 
     stage('Health check (staging)') {
       steps {
-        sh "scripts/health_check.sh http://${params.DEPLOY_IP}:${STAGING_PORT}/health"
+        // Run via bash and ensure the script is executable to avoid
+        // "Permission denied" when the exec bit wasn't preserved in the repo.
+        sh "chmod +x scripts/health_check.sh || true; bash scripts/health_check.sh http://${params.DEPLOY_IP}:${STAGING_PORT}/health"
       }
     }
 

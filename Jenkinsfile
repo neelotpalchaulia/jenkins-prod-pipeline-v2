@@ -4,7 +4,6 @@ pipeline {
   options {
     disableConcurrentBuilds()
     timestamps()
-    wrap([$class: 'AnsiColorBuildWrapper', colorMapName: 'xterm'])
     buildDiscarder(logRotator(numToKeepStr: '30'))
     timeout(time: 30, unit: 'MINUTES')
   }

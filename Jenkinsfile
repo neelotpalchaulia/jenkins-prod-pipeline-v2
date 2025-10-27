@@ -114,9 +114,12 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'acr-creds',
                   usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
-          sshagent(credentials: ['deploy-ssh']) {
+          // Use the SSH private key credential directly to create a temp key
+          // file and pass it to ssh. This avoids relying on the SSH Agent plugin
+          // (sshagent) which may not be installed on this Jenkins instance.
+          withCredentials([sshUserPrivateKey(credentialsId: 'deploy-ssh', keyFileVariable: 'SSH_KEYFILE')]) {
             sh """
-              ssh -o StrictHostKeyChecking=no azureuser@${params.DEPLOY_IP} "
+              ssh -i \$SSH_KEYFILE -o StrictHostKeyChecking=no azureuser@${params.DEPLOY_IP} "
                 docker login ${params.ACR} -u ${ACR_USER} -p ${ACR_PASS} >/dev/null 2>&1 || true;
                 docker pull ${IMAGE_SHA};
                 docker rm -f ${params.APP}-staging || true;
@@ -156,9 +159,9 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'acr-creds',
                   usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
-          sshagent(credentials: ['deploy-ssh']) {
+          withCredentials([sshUserPrivateKey(credentialsId: 'deploy-ssh', keyFileVariable: 'SSH_KEYFILE')]) {
             sh """
-              ssh -o StrictHostKeyChecking=no azureuser@${params.DEPLOY_IP} "
+              ssh -i \$SSH_KEYFILE -o StrictHostKeyChecking=no azureuser@${params.DEPLOY_IP} "
                 set -e
                 prev=\$(docker inspect -f '{{.Config.Image}}' ${params.APP}-prod 2>/dev/null || true)
                 docker login ${params.ACR} -u ${ACR_USER} -p ${ACR_PASS} >/dev/null 2>&1 || true
